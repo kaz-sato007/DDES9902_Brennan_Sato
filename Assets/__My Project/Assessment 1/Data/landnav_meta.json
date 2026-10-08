@@ -1,0 +1,63 @@
+{
+  "size": 500.0,
+  "res": 513,
+  "maxHeight": 100.0,
+  "splatRes": 512,
+  "start": {
+    "x": 95.0,
+    "z": 55.0,
+    "y": 8.657580991496973
+  },
+  "features": [
+    {
+      "id": "knoll",
+      "name": "Knoll",
+      "x": 160.0,
+      "z": 335.0,
+      "r": 18,
+      "flag": "Blue",
+      "teach": "A knoll is a rounded hilltop: ground falls away in every direction. On the map it is a small closed contour ring.",
+      "y": 49.147197316618595
+    },
+    {
+      "id": "ridge",
+      "name": "Ridgeline",
+      "x": 218.6533929977695,
+      "z": 332.4941089710032,
+      "r": 16,
+      "flag": "Red",
+      "teach": "A ridgeline is a line of high ground. Ground falls away on both sides but stays level or rises along it. Contours form long U or V shapes pointing away from high ground.",
+      "y": 42.55191937773386
+    },
+    {
+      "id": "saddle",
+      "name": "Saddle",
+      "x": 277.15339299776946,
+      "z": 327.9941089710032,
+      "r": 16,
+      "flag": "Yellow",
+      "teach": "A saddle is the dip on a ridge between two high points. Ground rises in two directions (to each knoll) and falls in the other two. Contours look like an hourglass.",
+      "y": 31.13793087839619
+    },
+    {
+      "id": "valley",
+      "name": "Valley",
+      "x": 262.0,
+      "z": 185.0,
+      "r": 20,
+      "flag": "Green",
+      "teach": "A valley is low ground between two spurs or ridges, usually with a watercourse. Contours form U or V shapes pointing uphill, towards higher ground.",
+      "y": 6.0575751294915285
+    },
+    {
+      "id": "knoll_east",
+      "name": "Knoll (the eastern one)",
+      "x": 355.0,
+      "z": 322.0,
+      "r": 18,
+      "flag": null,
+      "teach": "This is the other knoll on the map. Check which closed contour ring your flag is marked on.",
+      "y": 49.40961498758673
+    }
+  ]
+}
