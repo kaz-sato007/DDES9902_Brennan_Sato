@@ -32,6 +32,8 @@ namespace LandNav
         [Header("Map zoom")]
         [Tooltip("Distance of the raised map in front of the eyes (flat screen), metres")]
         public float flatMapDistance = 0.6f;
+        [Tooltip("How fast W/A/S/D or the arrow keys slide the raised map (share of the screen per second)")]
+        public float mapPanKeySpeed = 0.8f;
         [Tooltip("Share of the screen height the whole map board fills at zoom 1")]
         public float flatMapFit = 0.92f;
         public float maxZoom = 4f;
@@ -49,8 +51,10 @@ namespace LandNav
         Transform _head, _leftHand, _rightHand;
         Transform _mapLowered, _mapRaised;
         bool _mapUp, _wasRaised;
-        float _zoom = 1f, _raisedYaw;
+        float _zoom = 1f;
+        Vector2 _pan;            // point on the board (metres, unscaled) held at the centre of view
         Camera _cam;
+        Behaviour _walker;       // the EZPZ first-person controller (movement and mouse look)
         InputAction _plant, _cycle, _pickUp, _mapZoomVR;
 
         IEnumerator Start()
@@ -91,13 +95,15 @@ namespace LandNav
             var cam = flatPlayer.GetComponentInChildren<Camera>(true);
             _head = cam != null ? cam.transform : Camera.main.transform;
             _cam = _head.GetComponent<Camera>();
+            foreach (var b in flatPlayer.GetComponentsInChildren<Behaviour>(true))
+                if (b.GetType().Name == "FirstPersonController") { _walker = b; break; }
             _mapLowered = Anchor("LandNav_MapLowered", _head, flatMapLoweredPos, flatMapLoweredEuler);
             _mapRaised = Anchor("LandNav_MapRaised", _head, flatMapRaisedPos, Vector3.zero);
             var flagHand = Anchor("LandNav_FlagHand", _head, flatFlagPos, flatFlagEuler);
             map.transform.SetParent(_mapLowered, false);
             kit.SetHand(flagHand);
             if (SessionManager.Instance)
-                SessionManager.Instance.controlsHint = "M map, scroll or +/- to zoom | 1-4 or Q/E flag | F plant | G pull up";
+                SessionManager.Instance.controlsHint = "M map (mouse or WASD to slide, scroll or +/- to zoom) | 1-4 or Q/E flag | F plant | G pull up";
         }
 
         void SetupVR()
@@ -187,9 +193,10 @@ namespace LandNav
 #endif
 
         /// <summary>
-        /// Raised map: held up in front of the player at a fixed compass heading, sized to fill the
-        /// screen, so the mouse can look across it. Scroll (or +/-) zooms from the whole sheet up
-        /// to maxZoom. Lowered map: back at the hip, normal size.
+        /// Raised map: the player halts (as when reading a real map), the camera stays completely
+        /// still, and the map is slid under the view instead: mouse or W/A/S/D/arrow keys move it,
+        /// scroll or +/- zooms from the whole sheet up to maxZoom. Lowered map: back at the hip,
+        /// normal size, and walking and looking are restored.
         /// </summary>
         void UpdateFlatMap(bool raised, Keyboard kb, Mouse mouse)
         {
@@ -198,8 +205,10 @@ namespace LandNav
 
             if (!raised)
             {
+                if (_wasRaised && _walker != null) _walker.enabled = true; // walk and look again
                 _wasRaised = false;
                 _zoom = 1f;
+                _pan = Vector2.zero;
                 if (mt.parent != _mapLowered) mt.SetParent(_mapLowered, true);
                 mt.localPosition = Vector3.Lerp(mt.localPosition, Vector3.zero, k);
                 mt.localRotation = Quaternion.Slerp(mt.localRotation, Quaternion.identity, k);
@@ -209,13 +218,13 @@ namespace LandNav
 
             if (!_wasRaised)
             {
-                // freeze the heading the map is held at, so looking around scans across it
                 _wasRaised = true;
-                _raisedYaw = _head.eulerAngles.y;
-                mt.SetParent(null, true);
+                if (_walker != null) _walker.enabled = false; // halt: no walking, no camera movement
+                _pan = new Vector2(0f, -map.BoardCentreOffset); // start centred on the whole board
+                mt.SetParent(_head, true);
             }
 
-            // zoom input: mouse wheel (any platform scale) or +/- keys
+            // zoom: mouse wheel (any platform scale) or +/- keys
             float scroll = mouse != null ? mouse.scroll.ReadValue().y : 0f;
             if (scroll > 0.01f) _zoom *= 1.15f;
             else if (scroll < -0.01f) _zoom /= 1.15f;
@@ -223,18 +232,38 @@ namespace LandNav
             if (kb.minusKey.wasPressedThisFrame || kb.numpadMinusKey.wasPressedThisFrame) _zoom /= 1.25f;
             _zoom = Mathf.Clamp(_zoom, 1f, maxZoom);
 
-            // scale so the whole board fits the screen at zoom 1
+            // size so the whole board fits the screen at zoom 1
             float fov = _cam != null ? _cam.fieldOfView : 60f;
             float aspect = _cam != null ? _cam.aspect : 16f / 9f;
             float visH = 2f * flatMapDistance * Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad);
-            float fit = Mathf.Min(flatMapFit * visH / map.BoardSize.y, flatMapFit * visH * aspect / map.BoardSize.x);
+            float visW = visH * aspect;
+            float fit = Mathf.Min(flatMapFit * visH / map.BoardSize.y, flatMapFit * visW / map.BoardSize.x);
             float scale = fit * _zoom;
 
-            var heading = Quaternion.Euler(0f, _raisedYaw, 0f);
-            // centre the board (not the map origin) on the line of sight
-            Vector3 targetPos = _head.position + heading * new Vector3(0f, map.BoardCentreOffset * scale, flatMapDistance);
-            mt.position = Vector3.Lerp(mt.position, targetPos, k);
-            mt.rotation = Quaternion.Slerp(mt.rotation, heading, k);
+            // slide: mouse moves the map 1:1 on screen; keys at a steady speed
+            Vector2 slide = Vector2.zero;
+            if (mouse != null) slide += mouse.delta.ReadValue() * (visH / Mathf.Max(1, Screen.height));
+            Vector2 keys = Vector2.zero;
+            if (kb.wKey.isPressed || kb.upArrowKey.isPressed) keys.y += 1;
+            if (kb.sKey.isPressed || kb.downArrowKey.isPressed) keys.y -= 1;
+            if (kb.dKey.isPressed || kb.rightArrowKey.isPressed) keys.x += 1;
+            if (kb.aKey.isPressed || kb.leftArrowKey.isPressed) keys.x -= 1;
+            slide += keys * (mapPanKeySpeed * visH * Time.deltaTime);
+            _pan += slide / scale; // moving "up" brings the upper part of the map into view
+
+            // keep the board on screen: no sliding past its edges, and centred when it already fits
+            Vector2 half = map.BoardSize * 0.5f;
+            Vector2 view = new Vector2(visW, visH) * (0.5f / scale);
+            float boardMidY = -map.BoardCentreOffset;
+            float limX = Mathf.Max(0f, half.x - view.x);
+            float limY = Mathf.Max(0f, half.y - view.y);
+            _pan.x = Mathf.Clamp(_pan.x, -limX, limX);
+            _pan.y = Mathf.Clamp(_pan.y, boardMidY - limY, boardMidY + limY);
+
+            // the camera never moves; the map moves so the chosen point sits in the centre of view
+            Vector3 target = new Vector3(-_pan.x * scale, -_pan.y * scale, flatMapDistance);
+            mt.localPosition = Vector3.Lerp(mt.localPosition, target, k);
+            mt.localRotation = Quaternion.Slerp(mt.localRotation, Quaternion.identity, k);
             mt.localScale = Vector3.Lerp(mt.localScale, Vector3.one * scale, k);
         }
 

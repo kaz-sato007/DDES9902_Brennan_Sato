@@ -4,6 +4,37 @@ One entry per change, newest first. Each entry records the feedback, the change 
 
 ---
 
+## Change 2: Slide the map instead of looking around it (03 Nov 2026)
+
+**Feedback**
+After zooming in, reading other parts of the map meant looking up and down with the mouse, which made the tester feel slightly sick.
+
+**Suggested change**
+Keep the view still and shift the map itself up and down instead.
+
+**What was changed**
+
+*Scripts/Runtime/LandNavPlayerBridge.cs*
+1. Added one Inspector setting under "Map zoom": `mapPanKeySpeed` (0.8, share of the screen per second the keys slide the map).
+2. Added internal variables: `_pan` (the point on the map held at the centre of view) and `_walker` (the EZPZ FirstPersonController, which handles walking and mouse look). Removed `_raisedYaw` (no longer needed).
+3. Flat-screen setup now finds the EZPZ FirstPersonController on the flat player so it can be paused. Controls hint changed to: "M map (mouse or WASD to slide, scroll or +/- to zoom) | 1-4 or Q/E flag | F plant | G pull up".
+4. Rewrote the raised-map part of `UpdateFlatMap` (replaces Change 1, item 6):
+    - Raising the map pauses the FirstPersonController, so the player halts and the camera does not move at all while the map is up, as when stopping to read a real map.
+    - The map is attached to the view again and starts centred on the whole board.
+    - Moving the mouse slides the map 1:1 on screen; W/A/S/D or the arrow keys slide it at a steady speed. Moving "up" brings the upper part of the map into view.
+    - The map cannot be slid past its edges, and stays centred while it already fits the screen.
+    - Zoom (scroll or +/-) is unchanged and keeps the same spot in the centre as it zooms.
+    - Lowering the map restores walking and looking, and resets zoom and position.
+
+No other files were changed. VR is unchanged: in the headset the map is moved by moving your hand, so there is no camera motion to remove.
+
+**Status**
+- Tested in Unity: not yet
+- Tested on headset: not applicable (flat-screen change only)
+- Committed to GitHub: not yet
+
+---
+
 ## Change 1: Map zoom (03 Nov 2026)
 
 **Feedback**
