@@ -29,6 +29,15 @@ namespace LandNav
         public Vector3 flatFlagPos = new Vector3(0.4f, -0.95f, 0.95f);
         public Vector3 flatFlagEuler = new Vector3(-5f, 0f, -22f);
 
+        [Header("Map zoom")]
+        [Tooltip("Distance of the raised map in front of the eyes (flat screen), metres")]
+        public float flatMapDistance = 0.6f;
+        [Tooltip("Share of the screen height the whole map board fills at zoom 1")]
+        public float flatMapFit = 0.92f;
+        public float maxZoom = 4f;
+        [Tooltip("How large the map grows in VR with the left trigger fully squeezed")]
+        public float vrMaxZoom = 2.5f;
+
         [Header("VR placement (relative to the controllers)")]
         public Vector3 vrMapPos = new Vector3(0.0f, 0.06f, 0.12f);
         public Vector3 vrMapEuler = new Vector3(55f, 0f, 0f);
@@ -39,8 +48,10 @@ namespace LandNav
 
         Transform _head, _leftHand, _rightHand;
         Transform _mapLowered, _mapRaised;
-        bool _mapUp;
-        InputAction _plant, _cycle, _pickUp;
+        bool _mapUp, _wasRaised;
+        float _zoom = 1f, _raisedYaw;
+        Camera _cam;
+        InputAction _plant, _cycle, _pickUp, _mapZoomVR;
 
         IEnumerator Start()
         {
@@ -79,13 +90,14 @@ namespace LandNav
         {
             var cam = flatPlayer.GetComponentInChildren<Camera>(true);
             _head = cam != null ? cam.transform : Camera.main.transform;
+            _cam = _head.GetComponent<Camera>();
             _mapLowered = Anchor("LandNav_MapLowered", _head, flatMapLoweredPos, flatMapLoweredEuler);
             _mapRaised = Anchor("LandNav_MapRaised", _head, flatMapRaisedPos, Vector3.zero);
             var flagHand = Anchor("LandNav_FlagHand", _head, flatFlagPos, flatFlagEuler);
             map.transform.SetParent(_mapLowered, false);
             kit.SetHand(flagHand);
             if (SessionManager.Instance)
-                SessionManager.Instance.controlsHint = "M map | 1-4 or Q/E choose flag | F plant | G pull up";
+                SessionManager.Instance.controlsHint = "M map, scroll or +/- to zoom | 1-4 or Q/E flag | F plant | G pull up";
         }
 
         void SetupVR()
@@ -109,8 +121,9 @@ namespace LandNav
             _plant = Bind("<XRController>{RightHand}/{TriggerButton}");
             _cycle = Bind("<XRController>{RightHand}/{PrimaryButton}");
             _pickUp = Bind("<XRController>{RightHand}/{SecondaryButton}");
+            _mapZoomVR = Bind("<XRController>{LeftHand}/{Trigger}");
             if (SessionManager.Instance)
-                SessionManager.Instance.controlsHint = "A switch flag | Trigger plant at your hand | B pull up a flag";
+                SessionManager.Instance.controlsHint = "Left trigger enlarge map | A switch flag | Right trigger plant | B pull up";
         }
 
         static InputAction Bind(string path)
@@ -136,10 +149,7 @@ namespace LandNav
 
             if (kb.mKey.wasPressedThisFrame || kb.tabKey.wasPressedThisFrame) _mapUp = !_mapUp;
             bool raised = _mapUp || (mouse != null && mouse.rightButton.isPressed);
-            var target = raised ? _mapRaised : _mapLowered;
-            if (map.transform.parent != target) map.transform.SetParent(target, true);
-            map.transform.localPosition = Vector3.Lerp(map.transform.localPosition, Vector3.zero, 12f * Time.deltaTime);
-            map.transform.localRotation = Quaternion.Slerp(map.transform.localRotation, Quaternion.identity, 12f * Time.deltaTime);
+            UpdateFlatMap(raised, kb, mouse);
 
             if (kb.digit1Key.wasPressedThisFrame) kit.Select(0);
             if (kb.digit2Key.wasPressedThisFrame) kit.Select(1);
@@ -176,8 +186,65 @@ namespace LandNav
         }
 #endif
 
+        /// <summary>
+        /// Raised map: held up in front of the player at a fixed compass heading, sized to fill the
+        /// screen, so the mouse can look across it. Scroll (or +/-) zooms from the whole sheet up
+        /// to maxZoom. Lowered map: back at the hip, normal size.
+        /// </summary>
+        void UpdateFlatMap(bool raised, Keyboard kb, Mouse mouse)
+        {
+            float k = 1f - Mathf.Exp(-14f * Time.deltaTime); // smooth, frame-rate independent
+            var mt = map.transform;
+
+            if (!raised)
+            {
+                _wasRaised = false;
+                _zoom = 1f;
+                if (mt.parent != _mapLowered) mt.SetParent(_mapLowered, true);
+                mt.localPosition = Vector3.Lerp(mt.localPosition, Vector3.zero, k);
+                mt.localRotation = Quaternion.Slerp(mt.localRotation, Quaternion.identity, k);
+                mt.localScale = Vector3.Lerp(mt.localScale, Vector3.one, k);
+                return;
+            }
+
+            if (!_wasRaised)
+            {
+                // freeze the heading the map is held at, so looking around scans across it
+                _wasRaised = true;
+                _raisedYaw = _head.eulerAngles.y;
+                mt.SetParent(null, true);
+            }
+
+            // zoom input: mouse wheel (any platform scale) or +/- keys
+            float scroll = mouse != null ? mouse.scroll.ReadValue().y : 0f;
+            if (scroll > 0.01f) _zoom *= 1.15f;
+            else if (scroll < -0.01f) _zoom /= 1.15f;
+            if (kb.equalsKey.wasPressedThisFrame || kb.numpadPlusKey.wasPressedThisFrame) _zoom *= 1.25f;
+            if (kb.minusKey.wasPressedThisFrame || kb.numpadMinusKey.wasPressedThisFrame) _zoom /= 1.25f;
+            _zoom = Mathf.Clamp(_zoom, 1f, maxZoom);
+
+            // scale so the whole board fits the screen at zoom 1
+            float fov = _cam != null ? _cam.fieldOfView : 60f;
+            float aspect = _cam != null ? _cam.aspect : 16f / 9f;
+            float visH = 2f * flatMapDistance * Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad);
+            float fit = Mathf.Min(flatMapFit * visH / map.BoardSize.y, flatMapFit * visH * aspect / map.BoardSize.x);
+            float scale = fit * _zoom;
+
+            var heading = Quaternion.Euler(0f, _raisedYaw, 0f);
+            // centre the board (not the map origin) on the line of sight
+            Vector3 targetPos = _head.position + heading * new Vector3(0f, map.BoardCentreOffset * scale, flatMapDistance);
+            mt.position = Vector3.Lerp(mt.position, targetPos, k);
+            mt.rotation = Quaternion.Slerp(mt.rotation, heading, k);
+            mt.localScale = Vector3.Lerp(mt.localScale, Vector3.one * scale, k);
+        }
+
         void UpdateVR()
         {
+            // squeeze the left trigger to bring the map up large; release to return it to hand size
+            float squeeze = _mapZoomVR != null ? _mapZoomVR.ReadValue<float>() : 0f;
+            float vrScale = Mathf.Lerp(1f, vrMaxZoom, Mathf.Clamp01(squeeze));
+            map.transform.localScale = Vector3.Lerp(map.transform.localScale, Vector3.one * vrScale, 1f - Mathf.Exp(-14f * Time.deltaTime));
+
             if (_cycle.WasPressedThisFrame()) { kit.CycleNext(1); Haptic(XRNode.RightHand, 0.2f, 0.05f); }
             if (_plant.WasPressedThisFrame())
             {
@@ -206,7 +273,7 @@ namespace LandNav
 
         void OnDestroy()
         {
-            _plant?.Dispose(); _cycle?.Dispose(); _pickUp?.Dispose();
+            _plant?.Dispose(); _cycle?.Dispose(); _pickUp?.Dispose(); _mapZoomVR?.Dispose();
         }
     }
 }

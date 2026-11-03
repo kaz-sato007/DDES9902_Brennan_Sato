@@ -15,6 +15,11 @@ namespace LandNav
         public Material faceMaterial;   // compass face
         public Vector2 mapSize = new Vector2(0.32f, 0.40f); // matches the 2048 x 2560 map image
 
+        /// <summary>Size of the whole board (map plus status strip) at scale 1, metres.</summary>
+        public Vector2 BoardSize => new Vector2(mapSize.x + 0.02f, mapSize.y + 0.17f);
+        /// <summary>How far the board's centre sits below the map's centre, metres.</summary>
+        public float BoardCentreOffset => 0.075f;
+
         Transform _needle;
         WorldUI.Panel _status;
 
