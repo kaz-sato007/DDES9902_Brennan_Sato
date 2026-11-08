@@ -61,6 +61,29 @@ namespace LandNav
             return panel;
         }
 
+        /// <summary>A small panel with one line or a few lines of centred text (used for the map's location button).</summary>
+        public static Text CreateLabel(string name, Transform parent, Vector2 sizeMetres, Color bg, int fontSize, out Image background)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+            go.transform.SetParent(parent, false);
+            go.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+            go.GetComponent<CanvasScaler>().dynamicPixelsPerUnit = 4f;
+            var rt = (RectTransform)go.transform;
+            rt.sizeDelta = sizeMetres * 1000f;
+            rt.localScale = Vector3.one * 0.001f;
+
+            var bgGo = new GameObject("Background", typeof(RectTransform), typeof(Image));
+            bgGo.transform.SetParent(go.transform, false);
+            Stretch((RectTransform)bgGo.transform, 0);
+            background = bgGo.GetComponent<Image>();
+            background.color = bg;
+
+            var text = MakeText("Text", go.transform, fontSize, FontStyle.Bold, TextAnchor.MiddleCenter);
+            Stretch((RectTransform)text.transform, 2);
+            text.verticalOverflow = VerticalWrapMode.Overflow;
+            return text;
+        }
+
         static Text MakeText(string name, Transform parent, int size, FontStyle style, TextAnchor anchor)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Text));

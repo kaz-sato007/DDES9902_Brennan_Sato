@@ -55,7 +55,7 @@ namespace LandNav
         Vector2 _pan;            // point on the board (metres, unscaled) held at the centre of view
         Camera _cam;
         Behaviour _walker;       // the EZPZ first-person controller (movement and mouse look)
-        InputAction _plant, _cycle, _pickUp, _mapZoomVR;
+        InputAction _plant, _cycle, _pickUp, _mapZoomVR, _locationVR;
 
         IEnumerator Start()
         {
@@ -102,6 +102,7 @@ namespace LandNav
             var flagHand = Anchor("LandNav_FlagHand", _head, flatFlagPos, flatFlagEuler);
             map.transform.SetParent(_mapLowered, false);
             kit.SetHand(flagHand);
+            map.SetLocationKey("C");
             if (SessionManager.Instance)
                 SessionManager.Instance.controlsHint = "M map (mouse or WASD to slide, scroll or +/- to zoom) | 1-4 or Q/E flag | F plant | G pull up";
         }
@@ -128,6 +129,8 @@ namespace LandNav
             _cycle = Bind("<XRController>{RightHand}/{PrimaryButton}");
             _pickUp = Bind("<XRController>{RightHand}/{SecondaryButton}");
             _mapZoomVR = Bind("<XRController>{LeftHand}/{Trigger}");
+            _locationVR = Bind("<XRController>{LeftHand}/{PrimaryButton}");
+            map.SetLocationKey("X");
             if (SessionManager.Instance)
                 SessionManager.Instance.controlsHint = "Left trigger enlarge map | A switch flag | Right trigger plant | B pull up";
         }
@@ -170,6 +173,7 @@ namespace LandNav
                 kit.PlantSelected(Ground(_head.position + fwd * 0.9f), _head.position);
             }
             if (kb.gKey.wasPressedThisFrame) kit.PickUpNearest(BodyPosition);
+            if (kb.cKey.wasPressedThisFrame && map.ShowLocation(_head)) SessionManager.Instance?.OnLocationCheck();
 #if UNITY_EDITOR
             // Editor-only testing shortcut: F5..F9 jump to each feature (compiled out of builds)
             if (FeatureRegistry.Instance != null)
@@ -274,6 +278,11 @@ namespace LandNav
             float vrScale = Mathf.Lerp(1f, vrMaxZoom, Mathf.Clamp01(squeeze));
             map.transform.localScale = Vector3.Lerp(map.transform.localScale, Vector3.one * vrScale, 1f - Mathf.Exp(-14f * Time.deltaTime));
 
+            if (_locationVR != null && _locationVR.WasPressedThisFrame())
+            {
+                if (map.ShowLocation(_head)) SessionManager.Instance?.OnLocationCheck();
+                Haptic(XRNode.LeftHand, 0.2f, 0.05f);
+            }
             if (_cycle.WasPressedThisFrame()) { kit.CycleNext(1); Haptic(XRNode.RightHand, 0.2f, 0.05f); }
             if (_plant.WasPressedThisFrame())
             {
@@ -302,7 +311,7 @@ namespace LandNav
 
         void OnDestroy()
         {
-            _plant?.Dispose(); _cycle?.Dispose(); _pickUp?.Dispose(); _mapZoomVR?.Dispose();
+            _plant?.Dispose(); _cycle?.Dispose(); _pickUp?.Dispose(); _mapZoomVR?.Dispose(); _locationVR?.Dispose();
         }
     }
 }

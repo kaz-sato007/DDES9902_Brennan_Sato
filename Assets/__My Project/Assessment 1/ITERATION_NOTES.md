@@ -4,6 +4,25 @@ This file explains why each design change was made and the literature behind it,
 
 ---
 
+## Iteration 3: Current location button (09 Nov 2026)
+
+**What we observed**
+A trainee who loses track of their position has no way to recover other than wandering until the ground looks familiar. This is frustrating and wastes the session.
+
+**Design response**
+A "Current location" button on the map (C on screen, X in VR). Each press shows an exact red dot with a facing arrow for 5 seconds, then hides it again. Uses are unlimited but counted, shown on the button and in the completion message, and logged with a timestamp.
+
+**Rationale**
+1. *Support that does not replace the skill.* Turn by turn GPS style aids weaken spatial learning. Ishikawa et al. (2008) found that people navigating with a GPS device travelled further, stopped more often and formed poorer mental maps of the route than people using a paper map. A permanent "you are here" dot would let trainees skip the map to ground matching the exercise exists to teach. Keeping it hidden, brief and opt in means the trainee must still read the map and terrain, and only falls back on the marker when genuinely lost.
+2. *Scaffolding.* The button acts as scaffolding in the sense of Wood, Bruner and Ross (1976): help that is available when the learner cannot progress alone, which they rely on less as their skill grows. Counting uses makes that reliance visible to the trainee and to the instructor.
+3. *Exact dot, by choice.* An approximate circle was considered, since it would force the trainee to finish fixing their position from the contours. The exact dot was chosen to keep the aid simple and unambiguous for novices. The time limit and the counter keep it from becoming a crutch.
+4. *Behavioural data.* The number of location checks, and when they happen, is a direct measure of how often testers became lost. It can be compared across prototype versions in Assessment 2 testing.
+
+**How to verify in the next round of testing**
+Record location checks per tester alongside completion time and wrong plants. Ask whether the button helped them recover, and whether they felt it made the exercise too easy.
+
+---
+
 ## Iteration 2: Slide the map, hold the player still (03 Nov 2026)
 
 **What we observed**
@@ -62,6 +81,8 @@ Draper, M.H., Viirre, E.S., Furness, T.A. and Gawron, V.J. (2001) 'Effects of im
 
 Fernandes, A.S. and Feiner, S.K. (2016) 'Combating VR sickness through subtle dynamic field-of-view modification', *2016 IEEE Symposium on 3D User Interfaces (3DUI)*, pp. 201–210.
 
+Ishikawa, T., Fujiwara, H., Imai, O. and Okabe, A. (2008) 'Wayfinding with a GPS-based mobile navigation system: a comparison with maps and direct experience', *Journal of Environmental Psychology*, 28(1), pp. 74–82.
+
 Kennedy, R.S., Lane, N.E., Berbaum, K.S. and Lilienthal, M.G. (1993) 'Simulator Sickness Questionnaire: an enhanced method for quantifying simulator sickness', *The International Journal of Aviation Psychology*, 3(3), pp. 203–220.
 
 LaViola, J.J. (2000) 'A discussion of cybersickness in virtual environments', *ACM SIGCHI Bulletin*, 32(1), pp. 47–56.
@@ -75,5 +96,7 @@ Prothero, J.D. (1998) *The role of rest frames in vection, presence and motion s
 Reason, J.T. and Brand, J.J. (1975) *Motion sickness*. London: Academic Press.
 
 Shneiderman, B. (1996) 'The eyes have it: a task by data type taxonomy for information visualizations', *Proceedings 1996 IEEE Symposium on Visual Languages*, pp. 336–343.
+
+Wood, D., Bruner, J.S. and Ross, G. (1976) 'The role of tutoring in problem solving', *Journal of Child Psychology and Psychiatry*, 17(2), pp. 89–100.
 
 Note: these references were compiled without checking each one against the original source. Confirm page numbers and read at least each abstract before citing in the report.

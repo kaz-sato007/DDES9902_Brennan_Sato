@@ -14,6 +14,7 @@ namespace LandNav
 
         float _startTime;
         bool _complete;
+        int _locationChecks;
         float _completeTime;
         AudioSource _audio;
 
@@ -37,6 +38,16 @@ namespace LandNav
         }
 
         public void OnFlagPulled(Flag f) { }
+
+        /// <summary>Called each time the trainee opens the 'Current location' marker.</summary>
+        public void OnLocationCheck()
+        {
+            _locationChecks++;
+            float t = Time.time - _startTime;
+            Debug.Log($"[LandNav] Location check {_locationChecks} at {t:0.0} s");
+        }
+
+        public int LocationChecks => _locationChecks;
 
         int CorrectCount()
         {
@@ -63,7 +74,7 @@ namespace LandNav
             if (_complete)
             {
                 map.SetStatus("EXERCISE COMPLETE",
-                    $"All four features identified in {time} with {TotalAttempts()} plants. Walk back to any flag to review its feature.");
+                    $"All four features identified in {time} with {TotalAttempts()} plants and {_locationChecks} location check{(_locationChecks == 1 ? "" : "s")}. Walk back to any flag to review its feature.");
                 return;
             }
 
