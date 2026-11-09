@@ -4,6 +4,21 @@ This file explains why each design change was made and the literature behind it,
 
 ---
 
+## Iteration 5: Clear end and readable feedback (09 Nov 2026)
+
+**What we observed**
+A Version 1 tester was not sure when they had finished and asked for a completion indicator. In a walkthrough of the v3 build, the feedback sign sat above eye level and too close to read in one look, with its title cut off.
+
+**Design response**
+1. An "Exercise complete" panel appears when the fourth flag is planted correctly, with time, plants, location checks and a per-flag summary. It stays in the world and only glides back into view if the trainee turns or moves well away.
+2. The feedback sign now appears at eye level about 2.4 m from the trainee, beyond the flag and clear of its cloth.
+
+**Rationale**
+1. *Visibility of system status.* Users should always know what is going on (Nielsen 1994). Without a clear end state, trainees cannot tell the task is done; without a readable sign, the feedback that makes the exercise work is easy to miss.
+2. *Comfort.* The completion panel is world-fixed with a lazy follow rather than locked to the head, consistent with the rest frame reasoning in Iteration 2 (Prothero 1998).
+
+---
+
 ## Iteration 4: Walking restored while the map is up (09 Nov 2026)
 
 **What we observed**
@@ -111,6 +126,8 @@ LaViola, J.J. (2000) 'A discussion of cybersickness in virtual environments', *A
 Legge, G.E. and Bigelow, C.A. (2011) 'Does print size matter for reading? A review of findings from vision science and typography', *Journal of Vision*, 11(5), article 8.
 
 Lin, J.J.W., Duh, H.B.L., Parker, D.E., Abi-Rached, H. and Furness, T.A. (2002) 'Effects of field of view on presence, enjoyment, memory, and simulator sickness in a virtual environment', *Proceedings IEEE Virtual Reality 2002*, pp. 164–171.
+
+Nielsen, J. (1994) 'Enhancing the explanatory power of usability heuristics', *Proceedings of the SIGCHI Conference on Human Factors in Computing Systems (CHI '94)*, pp. 152–158.
 
 Prothero, J.D. (1998) *The role of rest frames in vection, presence and motion sickness*. PhD thesis. University of Washington.
 

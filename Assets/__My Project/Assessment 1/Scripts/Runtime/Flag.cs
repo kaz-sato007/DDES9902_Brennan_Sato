@@ -19,6 +19,9 @@ namespace LandNav
 
         const float PoleLength = 1.5f;
         const float GripHeight = 0.55f; // where the hand holds the pole, from the bottom
+        const float SignDistance = 2.4f;   // sign sits this far from the planter, beyond the flag
+        const float SignSideOffset = 0.3f; // and slightly to the left, clear of the flag cloth
+        const float SignHalfHeight = 0.25f;
 
         Transform _visual;
         Transform _cloth;
@@ -113,7 +116,32 @@ namespace LandNav
             _plantRoutine = StartCoroutine(DriveIn());
 
             attempts++;
+            PlaceSign(groundPoint, viewer);
             Evaluate(groundPoint);
+        }
+
+        /// <summary>
+        /// Put the feedback sign at the planter's eye level, a comfortable reading distance away
+        /// (beyond the flag and a little to the left of its cloth), instead of on top of the pole
+        /// where it sat above eye level and too close to read in one look.
+        /// </summary>
+        void PlaceSign(Vector3 groundPoint, Vector3 viewer)
+        {
+            Vector3 away = groundPoint - viewer; away.y = 0f;
+            if (away.sqrMagnitude < 0.01f) { away = transform.forward; away.y = 0f; }
+            away.Normalize();
+            Vector3 right = Vector3.Cross(Vector3.up, away); // the planter's right
+            Vector3 p = viewer + away * SignDistance - right * SignSideOffset;
+
+            float y = viewer.y - 0.1f; // centred just below eye level
+            var t = Terrain.activeTerrain;
+            if (t != null)
+            {
+                float ground = t.SampleHeight(p) + t.transform.position.y;
+                y = Mathf.Max(y, ground + 0.3f + SignHalfHeight); // never sink into rising ground
+            }
+            p.y = y;
+            _sign.root.transform.position = p;
         }
 
         IEnumerator DriveIn()

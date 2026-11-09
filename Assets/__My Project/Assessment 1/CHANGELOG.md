@@ -4,6 +4,60 @@ One entry per change, newest first. Each entry records the feedback, the change 
 
 ---
 
+## Change 11: Feedback sign at eye level (09 Nov 2026)
+
+**Feedback**
+In a walkthrough of the v3 build, the feedback sign was badly placed. After planting, the "Not quite" sign covered the top half of the view with its title cut off, and the "Correct" sign sat so high it had to be looked up at. A classmate also asked for an explanation after each plant, which the sign already gives, so the problem is that it is not easy to see.
+
+**Suggested change**
+Show the sign at eye level, a comfortable reading distance away, clear of the planted flag.
+
+**What was changed**
+
+*Scripts/Runtime/Flag.cs*
+1. Cause: the sign was attached to the top of the flag pole (1.95 m above the ground) and the flag is planted only about 0.9 m in front of the trainee, so the sign was both above eye level and too close to read in one look.
+2. New method `PlaceSign`, called each time a flag is planted. It places the sign 2.4 m from the trainee in the direction of the flag (about 1.5 m beyond it), 0.3 m to the trainee's left so the flag cloth does not cover it, and centred just below the trainee's eye level.
+3. On rising ground the sign is lifted so its bottom edge stays at least 0.3 m above the ground.
+4. New constants: `SignDistance` (2.4 m), `SignSideOffset` (0.3 m), `SignHalfHeight` (0.25 m).
+5. Unchanged: the sign still turns to face the trainee, only shows within 40 m, and hides when the flag is pulled up. Each new plant moves it again.
+
+No other files were changed.
+
+**Status**
+- Tested in Unity: not yet
+- Tested on headset: not yet
+- Committed to GitHub: not yet
+
+---
+
+## Change 10: Exercise complete pop-up (09 Nov 2026)
+
+**Feedback**
+A tester "wasn't sure when I finished" and asked for "a completion indicator when the game is finished". When the fourth flag was planted correctly, only a tone played and the small status strip under the map changed, which is easy to miss with the map lowered.
+
+**Suggested change**
+Show a clear pop-up when all four flags are planted correctly.
+
+**What was changed**
+
+*Scripts/Runtime/SessionManager.cs*
+1. New method `ShowCompletion`, called once when the fourth flag is planted correctly (after the existing completion tone). It opens a dark green "EXERCISE COMPLETE" panel 2.2 m in front of the trainee at eye level.
+2. The panel shows the total time, the number of plants, the number of location checks, and for each flag its colour, the feature it was planted on and how many plants it took. It ends with "Walk back to any flag to review it. Press Enter (A on the controller) to close."
+3. New method `UpdateCompletion`: the panel stays fixed in the world rather than stuck to the face, and only glides back in front of the trainee if they turn more than 35 degrees away or move more than 1 m nearer or further. It always turns to face the trainee, and it pops in over a quarter of a second.
+4. Closing: Enter, keypad Enter or Escape on the keyboard, or A on the right controller.
+5. The completion is also written to the Console with time, plants and location checks (behavioural data).
+6. New Inspector setting under "Completion pop-up": `popupDistance` (2.2 m). The VR close input is released when the scene closes.
+7. Unchanged: the status strip under the map still shows the "EXERCISE COMPLETE" summary.
+
+No other files were changed.
+
+**Status**
+- Tested in Unity: not yet
+- Tested on headset: not yet
+- Committed to GitHub: not yet
+
+---
+
 ## Change 9: Turn with the mouse while walking with the map up (09 Nov 2026)
 
 **Feedback**
