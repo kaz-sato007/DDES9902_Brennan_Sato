@@ -26,7 +26,12 @@ namespace LandNav
         [Tooltip("Where the 500 m map frame sits inside the map image, as fractions of the image (from make_map.py)")]
         public Rect mapFrame = new Rect(0.06f, 0.255f, 0.88f, 0.704f);
 
+        [Header("Compass")]
+        [Tooltip("How long the needle takes to settle after you turn, seconds (like a liquid-damped compass)")]
+        public float needleDamping = 0.25f;
+
         Transform _needle;
+        float _needleAngle, _needleVel;
         WorldUI.Panel _status;
 
         Transform _locMarker, _locTracked;
@@ -197,10 +202,22 @@ namespace LandNav
         {
             UpdateLocationMarker();
             if (_needle == null) return;
-            // point the needle at world north (+z), measured in the plane of the board
-            Vector3 n = transform.InverseTransformDirection(Vector3.forward);
-            float angle = Mathf.Atan2(-n.x, n.y) * Mathf.Rad2Deg;
-            _needle.localRotation = Quaternion.Euler(0, 0, angle);
+
+            // Heading indicator: work out which way the trainee is facing and point the needle that way
+            // on the north-up map, so it always agrees with the "Current location" arrow (facing east,
+            // both point right). (The original version measured north in the plane of the board, which
+            // fails when the board is held upright to read.)
+            // The board's "away from the reader" direction is its up axis when it lies flat and its
+            // forward axis when it stands upright; adding the two covers every tilt in between.
+            Vector3 facing = transform.up + transform.forward;
+            facing.y = 0f;
+            if (facing.sqrMagnitude > 1e-4f)
+            {
+                float yaw = Mathf.Atan2(facing.x, facing.z) * Mathf.Rad2Deg; // 0 = facing north, 90 = east
+                // facing east the needle points right (clockwise), the same rule as the location arrow
+                _needleAngle = Mathf.SmoothDampAngle(_needleAngle, -yaw, ref _needleVel, needleDamping);
+            }
+            _needle.localRotation = Quaternion.Euler(0, 0, _needleAngle);
         }
     }
 }

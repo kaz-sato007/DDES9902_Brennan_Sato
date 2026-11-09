@@ -32,8 +32,8 @@ namespace LandNav
         [Header("Map zoom")]
         [Tooltip("Distance of the raised map in front of the eyes (flat screen), metres")]
         public float flatMapDistance = 0.6f;
-        [Tooltip("How fast W/A/S/D or the arrow keys slide the raised map (share of the screen per second)")]
-        public float mapPanKeySpeed = 0.8f;
+        [Tooltip("Mouse turning speed while the map is up; 0.05 matches the EZPZ player's normal mouse look")]
+        public float lookScale = 0.05f;
         [Tooltip("Share of the screen height the whole map board fills at zoom 1")]
         public float flatMapFit = 0.92f;
         public float maxZoom = 4f;
@@ -55,6 +55,7 @@ namespace LandNav
         Vector2 _pan;            // point on the board (metres, unscaled) held at the centre of view
         Camera _cam;
         Behaviour _walker;       // the EZPZ first-person controller (movement and mouse look)
+        StarterAssets.StarterAssetsInputs _walkerInput; // its inputs: lets us pause mouse look but keep walking
         InputAction _plant, _cycle, _pickUp, _mapZoomVR, _locationVR;
 
         IEnumerator Start()
@@ -97,6 +98,7 @@ namespace LandNav
             _cam = _head.GetComponent<Camera>();
             foreach (var b in flatPlayer.GetComponentsInChildren<Behaviour>(true))
                 if (b.GetType().Name == "FirstPersonController") { _walker = b; break; }
+            _walkerInput = flatPlayer.GetComponentInChildren<StarterAssets.StarterAssetsInputs>(true);
             _mapLowered = Anchor("LandNav_MapLowered", _head, flatMapLoweredPos, flatMapLoweredEuler);
             _mapRaised = Anchor("LandNav_MapRaised", _head, flatMapRaisedPos, Vector3.zero);
             var flagHand = Anchor("LandNav_FlagHand", _head, flatFlagPos, flatFlagEuler);
@@ -104,7 +106,7 @@ namespace LandNav
             kit.SetHand(flagHand);
             map.SetLocationKey("C");
             if (SessionManager.Instance)
-                SessionManager.Instance.controlsHint = "M map (mouse or WASD to slide, scroll or +/- to zoom) | 1-4 or Q/E flag | F plant | G pull up";
+                SessionManager.Instance.controlsHint = "M map (mouse left/right turns, up/down slides, scroll or +/- zooms, WASD walks) | 1-4 or Q/E flag | F plant | G pull up";
         }
 
         void SetupVR()
@@ -209,7 +211,7 @@ namespace LandNav
 
             if (!raised)
             {
-                if (_wasRaised && _walker != null) _walker.enabled = true; // walk and look again
+                if (_wasRaised) SetLook(true); // mouse looks around again
                 _wasRaised = false;
                 _zoom = 1f;
                 _pan = Vector2.zero;
@@ -223,10 +225,15 @@ namespace LandNav
             if (!_wasRaised)
             {
                 _wasRaised = true;
-                if (_walker != null) _walker.enabled = false; // halt: no walking, no camera movement
+                SetLook(false); // the mouse slides the map instead of turning the view; walking carries on
                 _pan = new Vector2(0f, -map.BoardCentreOffset); // start centred on the whole board
                 mt.SetParent(_head, true);
             }
+
+            // mouse left/right turns the player (as normal mouse look does: EZPZ scales the mouse by 0.05);
+            // mouse up/down slides the map instead of tilting the view
+            Vector2 mouseDelta = mouse != null ? mouse.delta.ReadValue() : Vector2.zero;
+            if (_walkerInput != null) _walkerInput.look = new Vector2(mouseDelta.x * lookScale, 0f);
 
             // zoom: mouse wheel (any platform scale) or +/- keys
             float scroll = mouse != null ? mouse.scroll.ReadValue().y : 0f;
@@ -244,15 +251,10 @@ namespace LandNav
             float fit = Mathf.Min(flatMapFit * visH / map.BoardSize.y, flatMapFit * visW / map.BoardSize.x);
             float scale = fit * _zoom;
 
-            // slide: mouse moves the map 1:1 on screen; keys at a steady speed
-            Vector2 slide = Vector2.zero;
-            if (mouse != null) slide += mouse.delta.ReadValue() * (visH / Mathf.Max(1, Screen.height));
-            Vector2 keys = Vector2.zero;
-            if (kb.wKey.isPressed || kb.upArrowKey.isPressed) keys.y += 1;
-            if (kb.sKey.isPressed || kb.downArrowKey.isPressed) keys.y -= 1;
-            if (kb.dKey.isPressed || kb.rightArrowKey.isPressed) keys.x += 1;
-            if (kb.aKey.isPressed || kb.leftArrowKey.isPressed) keys.x -= 1;
-            slide += keys * (mapPanKeySpeed * visH * Time.deltaTime);
+            // slide: mouse up/down moves the map 1:1 on screen (left/right turns; W/A/S/D walk).
+            // If turning is unavailable (fallback), the mouse slides the map both ways as before.
+            Vector2 slide = mouseDelta * (visH / Mathf.Max(1, Screen.height));
+            if (_walkerInput != null) slide.x = 0f;
             _pan += slide / scale; // moving "up" brings the upper part of the map into view
 
             // keep the board on screen: no sliding past its edges, and centred when it already fits
@@ -269,6 +271,20 @@ namespace LandNav
             mt.localPosition = Vector3.Lerp(mt.localPosition, target, k);
             mt.localRotation = Quaternion.Slerp(mt.localRotation, Quaternion.identity, k);
             mt.localScale = Vector3.Lerp(mt.localScale, Vector3.one * scale, k);
+        }
+
+        /// <summary>
+        /// Turn mouse look on or off while leaving walking alone. Falls back to pausing the whole
+        /// controller (the Change 2 behaviour) if the EZPZ input component cannot be found.
+        /// </summary>
+        void SetLook(bool on)
+        {
+            if (_walkerInput != null)
+            {
+                _walkerInput.cursorInputForLook = on;
+                _walkerInput.look = Vector2.zero;
+            }
+            else if (_walker != null) _walker.enabled = on;
         }
 
         void UpdateVR()

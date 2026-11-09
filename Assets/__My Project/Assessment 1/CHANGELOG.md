@@ -4,6 +4,108 @@ One entry per change, newest first. Each entry records the feedback, the change 
 
 ---
 
+## Change 9: Turn with the mouse while walking with the map up (09 Nov 2026)
+
+**Feedback**
+With the map up, it is not possible to turn while walking.
+
+**Suggested change**
+Three options were offered: A/D turn instead of side-stepping, mouse turns only at 1x zoom, or mouse left/right turns while mouse up/down slides the map. Chosen: mouse left/right turns, mouse up/down slides the map.
+
+**What was changed**
+
+*Scripts/Runtime/LandNavPlayerBridge.cs*
+1. While the map is up, moving the mouse left or right now turns the player, at the same speed as normal mouse look (the EZPZ player scales the mouse by 0.05). New Inspector setting `lookScale` (0.05) under "Map zoom".
+2. Moving the mouse up or down slides the map up or down, as before. The view never tilts up or down while the map is up.
+3. The mouse no longer slides the map sideways. If the EZPZ input component cannot be found (fallback), the mouse slides the map both ways as in Change 8.
+4. Controls hint changed to: "M map (mouse left/right turns, up/down slides, scroll or +/- zooms, WASD walks) | 1-4 or Q/E flag | F plant | G pull up".
+
+Note: the map stays fixed in front of the eyes while turning, so only the scenery behind it rotates. When zoomed in, the left and right edges of the map can no longer be brought into view.
+
+**Status**
+- Tested in Unity: not yet
+- Tested on headset: not applicable (flat-screen change only)
+- Committed to GitHub: not yet
+
+---
+
+## Change 8: Walking restored while the map is up (09 Nov 2026)
+
+**Feedback**
+Bring back movement while the map is up. The reason given in Change 2 for stopping movement (that walking with the map up causes motion sickness) was an assumption not supported by the sources; the sickness actually observed came from turning the camera.
+
+**Suggested change**
+Let the player walk with the map raised, but keep the camera from turning (the part of Change 2 that addressed the observed sickness). The mouse keeps sliding the map.
+
+**What was changed**
+
+*Scripts/Runtime/LandNavPlayerBridge.cs*
+1. Raising the map no longer pauses the whole EZPZ FirstPersonController. Instead it pauses only mouse look, through the EZPZ StarterAssetsInputs component (`cursorInputForLook` off, and the look input held at zero each frame). Walking, sprinting and jumping keep working.
+2. Lowering the map turns mouse look back on.
+3. New helper `SetLook`. If the StarterAssetsInputs component cannot be found, it falls back to pausing the whole controller as in Change 2.
+4. W/A/S/D and the arrow keys no longer slide the map (they walk). The mouse still slides it, and zoom (scroll or +/-) is unchanged.
+5. Removed the Inspector setting `mapPanKeySpeed`, which only controlled key sliding.
+6. Controls hint changed to: "M map (mouse to slide, scroll or +/- to zoom, WASD still walks) | 1-4 or Q/E flag | F plant | G pull up".
+
+*ITERATION_NOTES.md*
+1. Added Iteration 4 with the revised reasoning, and a correction note under Iteration 2.
+
+VR is unchanged (walking with the map in hand was always possible there).
+
+**Status**
+- Tested in Unity: not yet
+- Tested on headset: not applicable (flat-screen change only)
+- Committed to GitHub: not yet
+
+---
+
+## Change 7: Compass needle shows heading, matching the location arrow (09 Nov 2026)
+
+**Feedback**
+The compass needle and the "Current location" arrow do not line up.
+
+**Suggested change**
+The two showed different things. After Change 6 the needle pointed to real north relative to the trainee (facing east, it pointed left), while the location arrow shows which way the trainee faces on the north-up map (facing east, it points right). They only agreed when facing north or south. Three options were offered: make the compass show heading, keep real compass behaviour with an "N" label, or rotate the map to match the ground. Chosen: make the compass show heading, so both indicators follow one rule.
+
+**What was changed**
+
+*Scripts/Runtime/MapBoard.cs*
+1. The needle now turns the opposite way: it points in the direction the trainee is facing on the north-up map. Facing north it points up, east right, south down, west left, exactly like the location arrow.
+2. Comments updated to describe the new behaviour. The smooth settling (`needleDamping`, 0.25 s) is unchanged.
+
+No other files were changed.
+
+**Status**
+- Tested in Unity: not yet
+- Tested on headset: not yet
+- Committed to GitHub: not yet
+
+---
+
+## Change 6: Fix the map compass (09 Nov 2026)
+
+**Feedback**
+The compass on the map does not seem to work.
+
+**Suggested change**
+Make the needle behave like a compass held flat in the palm, so it shows north correctly whether the map is raised, lowered or held in the VR hand.
+
+**What was changed**
+
+*Scripts/Runtime/MapBoard.cs*
+1. Cause: the needle measured north across the face of the board. That only works when the board lies flat. When the map is raised to read, the board stands upright and north points into or out of it, so the needle pointed straight up whether the trainee faced north or south, and twitched in between.
+2. The needle now works out which way the trainee is facing (from the direction the board faces, which covers flat, upright and every tilt in between) and points to north relative to that. Facing north, it points to the top of the map; facing east, to the left; facing south, down; facing west, to the right.
+3. The needle now settles smoothly after a turn instead of snapping, like a liquid-damped compass. New Inspector setting under "Compass": `needleDamping` (0.25 s).
+
+No other files were changed.
+
+**Status**
+- Tested in Unity: not yet
+- Tested on headset: not yet
+- Committed to GitHub: not yet
+
+---
+
 ## Change 5: Move the Current location button into the map grid (09 Nov 2026)
 
 **Feedback**

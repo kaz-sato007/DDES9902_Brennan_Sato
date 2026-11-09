@@ -4,6 +4,26 @@ This file explains why each design change was made and the literature behind it,
 
 ---
 
+## Iteration 4: Walking restored while the map is up (09 Nov 2026)
+
+**What we observed**
+On review, the decision in Iteration 2 to stop the player moving while the map is raised rested on an untested assumption. The nausea reported in Iteration 2 came from turning the camera to scan a zoomed map, not from walking. Stopping movement also removed the ability to read the map on the move, which some trainees may want.
+
+**Design response**
+1. Walking (W/A/S/D or the arrows) works again while the map is raised.
+2. Mouse look stays paused while the map is up, and the mouse still slides the map. This keeps the fix that addressed the observed problem: the camera does not turn while the trainee reads.
+3. W/A/S/D no longer slide the map, because they now walk. Sliding is by mouse only, and zoom is unchanged.
+
+**Rationale**
+1. *Keep the change that matches the evidence.* Sensory conflict from turning the view (Reason and Brand 1975; LaViola 2000), amplified by magnification (Draper et al. 2001), explains the reported discomfort. Pausing mouse look removes that cause. Pausing walking was not supported by the observation or the sources.
+2. *A raised map may act as a stable foreground.* A fixed object in the foreground of the view, such as a cockpit frame or a virtual nose, has been reported to reduce simulator sickness by giving the eye a stable reference (Whittinghill et al. 2015). A map held in front of the eyes while walking could work the same way. This is a hypothesis to test, not a claim.
+3. *User control.* Letting trainees choose whether to halt or read on the move gives them more control over the experience, and halting remains available as the field practice it reflects.
+
+**How to verify in the next round of testing**
+Record whether testers walk with the map up, and include the discomfort rating (0 to 10, or the SSQ by Kennedy et al. 1993). Compare discomfort between testers who read on the move and those who halt.
+
+---
+
 ## Iteration 3: Current location button (09 Nov 2026)
 
 **What we observed**
@@ -44,6 +64,7 @@ Status of this hypothesis: it is based on one person's report and on the literat
 1. *The map moves instead of the view.* Mouse movement and W/A/S/D now slide the map across the screen while the camera stays fixed. Any motion is confined to the map, an object the user is looking at, rather than the whole visual field. Brandt, Dichgans and Koenig (1973) showed that motion seen centrally is read mainly as object motion, not self motion. A stationary surrounding scene also gives the user a stable reference, or "rest frame", against which the moving map is judged. Prothero (1998) argues that a stable rest frame reduces vection and sickness. Fernandes and Feiner (2016) showed that reducing optic flow in the periphery reduces VR sickness while keeping users engaged.
 
 2. *The player cannot move while the map is up.* Raising the map now pauses walking and mouse look. This removes the second source of conflicting visual motion: walking forward while the eyes are fixed on a handheld map. It keeps the whole view still apart from the map, which preserves the rest frame described above (Prothero 1998). It also matches field practice, where soldiers halt to read a map rather than reading on the move.
+   *Correction (09 Nov 2026):* the claim that walking with the map up adds conflicting motion was an inference, not a finding from the sources cited. None of them tests walking while reading a map, and the discomfort actually observed came from turning the camera, not from walking. Walking was restored in Iteration 4, which sets out the revised reasoning.
 
 3. *Zoom was kept.* Iteration 1 solved a real legibility problem (below). Iteration 2 changes how a zoomed map is explored, not whether it can be zoomed.
 
@@ -96,6 +117,8 @@ Prothero, J.D. (1998) *The role of rest frames in vection, presence and motion s
 Reason, J.T. and Brand, J.J. (1975) *Motion sickness*. London: Academic Press.
 
 Shneiderman, B. (1996) 'The eyes have it: a task by data type taxonomy for information visualizations', *Proceedings 1996 IEEE Symposium on Visual Languages*, pp. 336–343.
+
+Whittinghill, D.M., Ziegler, B., Case, T. and Moore, B. (2015) 'Nasum virtualis: a simple technique for reducing simulator sickness', paper presented at the *Game Developers Conference (GDC) 2015*, San Francisco, 2–6 March.
 
 Wood, D., Bruner, J.S. and Ross, G. (1976) 'The role of tutoring in problem solving', *Journal of Child Psychology and Psychiatry*, 17(2), pp. 89–100.
 
